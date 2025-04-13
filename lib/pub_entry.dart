@@ -21,7 +21,11 @@ class PubEntry {
   String? get sha256 => _description?.sha256;
   String? get host {
     final RegExp regExp = RegExp(r'^https?://');
-    return _description?.url?.replaceFirst(regExp, '');
+    String? hostName = _description?.url?.replaceFirst(regExp, '');
+    if (hostName == null) return hostName;
+
+    hostName = Uri.encodeComponent(hostName!);
+    return hostName!.replaceAll('%2F', '%47');
   }
 
   PubEntry({
@@ -30,19 +34,23 @@ class PubEntry {
     required PubDesc? description,
     required String source,
     required String version,
-  }) : _name = name,
-       _dependency = dependency,
-       _description = description,
-       _source = source,
-       _version = version;
+  })  : _name = name,
+        _dependency = dependency,
+        _description = description,
+        _source = source,
+        _version = version;
 
   // Factory constructor to create an instance from a YamlMap
   factory PubEntry.fromYamlMap(String name, YamlMap map) {
-    if (map['dependency'] is! String || map['source'] is! String || map['version'] is! String) {
+    if (map['dependency'] is! String ||
+        map['source'] is! String ||
+        map['version'] is! String) {
       throw ArgumentError('Invalid types in YamlMap');
     }
-    if (!map.containsKey('dependency') || !map.containsKey('source') ||
-        !map.containsKey('version') || !map.containsKey('description')) {
+    if (!map.containsKey('dependency') ||
+        !map.containsKey('source') ||
+        !map.containsKey('version') ||
+        !map.containsKey('description')) {
       throw ArgumentError('Missing required keys in YamlMap');
     }
 
@@ -61,15 +69,23 @@ class PubEntry {
   }
 
   Future<void> resolveUrl() async {
-    final String? hostedUrl = _description?.url;
+    String? hostedUrl = _description?.url;
     final String pkgName = _name;
+
+    if (!hosted) {
+      print('  Skipping non-hosted pkg: $pkgName');
+      return;
+    }
 
     if (hostedUrl == null) {
       _resolvedUrl = null;
       return;
-    } 
+    }
 
-    // https://pub.dev/api/packages/plugin_platform_interface
+    // ex: https://pub.dev/api/packages/plugin_platform_interface
+    hostedUrl = (hostedUrl?.endsWith('/') ?? false)
+        ? hostedUrl?.substring(0, hostedUrl!.length - 1)
+        : hostedUrl;
     final requestUrl = '$hostedUrl/api/packages/$pkgName';
     final url = Uri.parse(requestUrl);
 
@@ -111,15 +127,16 @@ class PubDesc {
   String? get url => _url;
   String? get sha256 => _sha256;
 
-  PubDesc({required String? name, required String? sha256, required String? url})
-    : _name = name,
-      _sha256 = sha256,
-      _url = url;
+  PubDesc(
+      {required String? name, required String? sha256, required String? url})
+      : _name = name,
+        _sha256 = sha256,
+        _url = url;
 
   // Factory constructor to create an instance from a YamlMap
   factory PubDesc.fromYamlMap(YamlMap map) {
     return PubDesc(
-      name: map['name']?? null as String?,
+      name: map['name'] ?? null as String?,
       sha256: map['sha256'] ?? null as String?,
       url: map['url'] ?? null as String?,
     );
