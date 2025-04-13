@@ -21,7 +21,6 @@ class PubspecLockParser {
     final yamlMap = loadYaml(content);
 
     for (var pkg in yamlMap['packages'].entries) {
-      print('Parsing package: ${pkg.key}');
       PubEntry entry = PubEntry.fromYamlMap(pkg.key, pkg.value as YamlMap);
 
       try {

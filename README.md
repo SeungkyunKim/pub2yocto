@@ -10,10 +10,10 @@ The generated result is for the Yocto build recipe. It should manage dependent p
 Adding the package name to `dev_dependencies`; not to `dependencies` because the package does nothing on runtime.
 
 ```shell
-flutter pub add dev:pub2yocto
+flutter pub add --dev pub2yocto
 ```
 
-or
+Or manually add it to your `pubspec.yaml` under `dev_dependencies`:
 
 ```yaml
 dev_dependencies:
@@ -28,6 +28,21 @@ Before executing the command, you must update your `pubspec.lock` using `pub get
 flutter pub get
 dart run pub2yocto
 ```
-## In your Flutter App recipe
-PUB_CACHE_LOCAL is a relative path starting from ${WORK_DIR} that specifies the pub_cache 
-path used in each individual recipe. The default path is ${WORK_DIR}/pub_cache.
+
+You can specify an input file (`pubspec.lock` by default) and an output file for the generated recipe using command-line options:
+
+```shell
+dart run pub2yocto -i path/to/pubspec.lock -o path/to/output.bbappend
+```
+
+### Options:
+
+- `-i, --input`: Specify the input file. Defaults to `pubspec.lock`.
+- `-o, --output`: Specify the output file name for the generated recipe. If not provided, `pub2yocto` generates a `.bbappend` file named after the project defined in `pubspec.yaml`.
+
+## In Your Flutter App Recipe
+
+`pub2yocto` generates Yocto recipes that assume a `PUB_CACHE_LOCAL` environment variable. This variable is a relative path from `${WORK_DIR}` that specifies the `pub_cache` path used by individual recipes. If not set, it defaults to `${WORK_DIR}/pub_cache`.
+
+Ensure this setup aligns with your Yocto project's configuration for smooth integration.
+
