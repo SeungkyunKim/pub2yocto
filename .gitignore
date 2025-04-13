@@ -13,6 +13,8 @@ doc/api/
 
 # dotenv environment variables file
 .env*
+.swp
+.swo
 
 # Avoid committing generated Javascript files:
 *.dart.js
@@ -22,6 +24,8 @@ doc/api/
 *.js_
 *.js.deps
 *.js.map
+
+*.bbappend
 
 .flutter-plugins
 .flutter-plugins-dependencies
