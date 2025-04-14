@@ -24,8 +24,8 @@ class PubEntry {
     String? hostName = _description?.url?.replaceFirst(regExp, '');
     if (hostName == null) return hostName;
 
-    hostName = Uri.encodeComponent(hostName!);
-    return hostName!.replaceAll('%2F', '%47');
+    hostName = Uri.encodeComponent(hostName);
+    return hostName.replaceAll('%2F', '%47');
   }
 
   PubEntry({
@@ -83,8 +83,8 @@ class PubEntry {
     }
 
     // ex: https://pub.dev/api/packages/plugin_platform_interface
-    hostedUrl = (hostedUrl?.endsWith('/') ?? false)
-        ? hostedUrl?.substring(0, hostedUrl!.length - 1)
+    hostedUrl = hostedUrl.endsWith('/')
+        ? hostedUrl.substring(0, hostedUrl.length - 1)
         : hostedUrl;
     final requestUrl = '$hostedUrl/api/packages/$pkgName';
     final url = Uri.parse(requestUrl);
