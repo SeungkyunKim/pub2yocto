@@ -14,11 +14,24 @@ class PubEntry {
 
   String get name => _name;
   String get dep => _dependency;
-  String get pkgName => '$_name-$_version';
-  String? get url => _resolvedUrl;
+
   bool get hosted => _source == 'hosted';
+  bool get git => _source == 'git';
+  bool get remote => git || hosted;
+
   String get version => _version;
   String? get sha256 => _description?.sha256;
+  String? get ref => _description?.ref;
+
+  String? get url {
+    if (hosted) {
+      return _resolvedUrl;
+    } else if (git) {
+      return _description?.url;
+    }
+    return null;
+  }
+
   String? get host {
     final RegExp regExp = RegExp(r'^https?://');
     String? hostName = _description?.url?.replaceFirst(regExp, '');
@@ -116,21 +129,51 @@ class PubEntry {
     return 'PubEntry{name: $_name, '
         'description: $_description, version: $_version}';
   }
+
+  String uri() {
+    String? uri;
+
+    if (hosted) {
+      uri = 'SRC_URI:append = " ${url};name=${_name};'
+          'subdir=\${PUB_CACHE_LOCAL}/hosted/${host}/${_name}-${_version}"';
+    } else if (git) {
+      uri = 'SRC_URI:append = " git:://${url};name=${_name};protocol=ssh;'
+          'destsuffix=\${PUB_CACHE_LOCAL}/git/${_name}-${ref};nobranch=1"';
+    }
+    return uri ?? '';
+  }
+
+  String checksum() {
+    String? checksum;
+
+    if (hosted) {
+      checksum = 'SRC_URI[${_name}.sha256sum] = "$sha256"';
+    } else if (git) {
+      checksum = 'SRCREV_${_name} = "$ref"';
+    }
+    return checksum ?? '';
+  }
 }
 
 class PubDesc {
   final String? _name;
   final String? _sha256;
+  final String? _resolved_ref;
   final String? _url;
 
   String? get name => _name;
   String? get url => _url;
   String? get sha256 => _sha256;
+  String? get ref => _resolved_ref;
 
   PubDesc(
-      {required String? name, required String? sha256, required String? url})
+      {required String? name,
+      required String? sha256,
+      required String? resolved_ref,
+      String? url})
       : _name = name,
         _sha256 = sha256,
+        _resolved_ref = resolved_ref,
         _url = url;
 
   // Factory constructor to create an instance from a YamlMap
@@ -138,12 +181,13 @@ class PubDesc {
     return PubDesc(
       name: map['name'] ?? null as String?,
       sha256: map['sha256'] ?? null as String?,
+      resolved_ref: map['resolved-ref'] ?? null as String?,
       url: map['url'] ?? null as String?,
     );
   }
 
   @override
   String toString() {
-    return 'PubDesc{sha256: $_sha256, url: $_url}';
+    return 'PubDesc{sha256: $sha256, ref: $ref, url: $url}';
   }
 }

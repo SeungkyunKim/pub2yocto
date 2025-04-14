@@ -5,21 +5,20 @@ import 'package:pub2yocto/pub2yocto.dart';
 
 void main(List<String> arguments) async {
   // Define the parser and options
-  final parser =
-      ArgParser()
-        ..addOption(
-          'input',
-          abbr: 'i',
-          help: 'Input file name',
-          defaultsTo: 'pubspec.lock',
-        )
-        ..addOption('output', abbr: 'o', help: 'Output file name')
-        ..addFlag(
-          'help',
-          abbr: 'h',
-          negatable: false,
-          help: 'Show usage information',
-        );
+  final parser = ArgParser()
+    ..addOption(
+      'input',
+      abbr: 'i',
+      help: 'Input file name',
+      defaultsTo: 'pubspec.lock',
+    )
+    ..addOption('output', abbr: 'o', help: 'Output file name')
+    ..addFlag(
+      'help',
+      abbr: 'h',
+      negatable: false,
+      help: 'Show usage information',
+    );
 
   // Parse the arguments
   ArgResults argResults;
@@ -52,7 +51,7 @@ void main(List<String> arguments) async {
   );
   await lockparser.parse();
 
-  await lockparser.writeHosedEntries();
+  await lockparser.writeAsRecipe();
 }
 
 String? getPubspecName() {
