@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:yaml/yaml.dart';
 
+/// Base class for a pub package entry.
+/// It holds the common data and helper methods.
 class PubEntry {
   final String _name;
   final String _dependency;
@@ -10,42 +12,7 @@ class PubEntry {
   final String _source;
   final String _version;
 
-  late String? _resolvedUrl;
-
-  String get name => _name;
-  String get dep => _dependency;
-
-  bool get hosted => _source == 'hosted';
-  bool get git => _source == 'git';
-  bool get remote => git || hosted;
-
-  String get version => _version;
-  String? get sha256 => _description?.sha256;
-  String? get ref => _description?.ref;
-
-  String? get url {
-    if (hosted) {
-      return _resolvedUrl;
-    } else if (git) {
-      return _description?.url;
-    }
-    return null;
-  }
-
-  String? get address => splitUri()['address'];
-  String? get protocol => splitUri()['protocol'];
-
-  String? get encodedHost {
-    //final RegExp regExp = RegExp(r'^https?://');
-    //String? hostName = _description?.url?.replaceFirst(regExp, '');
-
-    String? hostName = address;
-    if (hostName == null) return hostName;
-
-    hostName = Uri.encodeComponent(hostName);
-    return hostName.replaceAll('%2F', '%47');
-  }
-
+  // Common constructor is internal – use the factory to get the proper type.
   PubEntry({
     required String name,
     required String dependency,
@@ -58,7 +25,8 @@ class PubEntry {
         _source = source,
         _version = version;
 
-  // Factory constructor to create an instance from a YamlMap
+  /// Factory constructor that creates a Hosted or Git version if needed;
+  /// for other sources it creates a generic PubEntry.
   factory PubEntry.fromYamlMap(String name, YamlMap map) {
     if (map['dependency'] is! String ||
         map['source'] is! String ||
@@ -72,54 +40,137 @@ class PubEntry {
       throw ArgumentError('Missing required keys in YamlMap');
     }
 
+    String source = map['source'] as String;
+    if (source == 'hosted') {
+      return HostedPubEntry.fromYamlMap(name, map);
+    } else if (source == 'git') {
+      return GitPubEntry.fromYamlMap(name, map);
+    } else {
+      // For other types, just return the base class instance
+      PubDesc? desc;
+      if (map['description'] is YamlMap) {
+        desc = PubDesc.fromYamlMap(map['description'] as YamlMap);
+      }
+      return PubEntry(
+        name: name,
+        dependency: map['dependency'] as String,
+        description: desc,
+        source: source,
+        version: map['version'] as String,
+      );
+    }
+  }
+
+  // Getter methods for accessing fields.
+  String get name => _name;
+  String get dep => _dependency;
+  String get version => _version;
+  PubDesc? get description => _description;
+  bool get hosted => _source == 'hosted';
+  bool get git => _source == 'git';
+  bool get remote => hosted || git;
+
+  Map<String?, String?> splitUri() {
+    String? uri = _description?.url;
+    if (uri == null) return {'protocol': null, 'address': null};
+
+    // Regular expression to match the protocol
+    RegExp regExp = RegExp(r'^(.*?):\/\/');
+    String? protocol;
+    String address = uri;
+
+    if (regExp.hasMatch(uri)) {
+      protocol = regExp.firstMatch(uri)?.group(1);
+      address = uri.replaceFirst(regExp, '');
+    }
+    return {'protocol': protocol, 'address': address};
+  }
+
+  /// Returns an encoded version of the host portion of the URL.
+  /// (Replaces '/' with '%47' after encoding.)
+  String? get encodedHost {
+    String? hostName = splitUri()['address'];
+    if (hostName == null) return null;
+    hostName = Uri.encodeComponent(hostName);
+    return hostName.replaceAll('%2F', '%47');
+  }
+
+  /// By default, a generic PubEntry does not fetch a resolved URL.
+  Future resolveUrl() async {
+    // Do nothing for non-remote types (or types that do not override this)
+    print(' Skipping non-remote type: $name');
+  }
+
+  String uri() {
+    return '';
+  }
+
+  String checksum() {
+    return '';
+  }
+
+  @override
+  String toString() {
+    return 'PubEntry{name: $_name, description: $_description, version: $_version}';
+  }
+}
+
+/// HostedPubEntry is a subtype of PubEntry for hosted packages.
+/// It overrides resolveUrl to perform an HTTP call and produces
+/// a SRC_URI and checksum line for hosted packages.
+class HostedPubEntry extends PubEntry {
+  String? _resolvedUrl;
+  HostedPubEntry({
+    required String name,
+    required String dependency,
+    required PubDesc? description,
+    required String version,
+  }) : super(
+          name: name,
+          dependency: dependency,
+          description: description,
+          source: 'hosted',
+          version: version,
+        );
+  factory HostedPubEntry.fromYamlMap(String name, YamlMap map) {
     PubDesc? desc;
     if (map['description'] is YamlMap) {
       desc = PubDesc.fromYamlMap(map['description'] as YamlMap);
     }
-
-    return PubEntry(
+    return HostedPubEntry(
       name: name,
       dependency: map['dependency'] as String,
       description: desc,
-      source: map['source'] as String,
       version: map['version'] as String,
     );
   }
-
-  Future<void> resolveUrl() async {
-    String? hostedUrl = _description?.url;
-    final String pkgName = _name;
-
-    if (!hosted) {
-      print('  Skipping non-hosted pkg: $pkgName');
-      return;
-    }
+  @override
+  Future resolveUrl() async {
+    String? hostedUrl = description?.url;
+    final String pkgName = name;
 
     if (hostedUrl == null) {
       _resolvedUrl = null;
       return;
     }
 
-    // ex: https://pub.dev/api/packages/plugin_platform_interface
+    // Remove any trailing slash
     hostedUrl = hostedUrl.endsWith('/')
         ? hostedUrl.substring(0, hostedUrl.length - 1)
         : hostedUrl;
     final requestUrl = '$hostedUrl/api/packages/$pkgName';
-    final url = Uri.parse(requestUrl);
+    final urlParsed = Uri.parse(requestUrl);
 
     try {
-      final response = await http.get(url);
-
+      final response = await http.get(urlParsed);
       if (response.statusCode != 200) {
         throw HttpException('HTTP error: ${response.statusCode}');
       }
 
       final pubPackageJson = json.decode(response.body) as Map<String, dynamic>;
-
       for (var verPkg in pubPackageJson['versions'] as List<dynamic>) {
         final versionData = verPkg as Map<String, dynamic>;
-
-        if (versionData['version'] == _version) {
+        if (versionData['version'] == version) {
           _resolvedUrl = versionData['archive_url'] as String;
           break;
         }
@@ -129,91 +180,94 @@ class PubEntry {
     }
   }
 
-  Map<String?, String?> splitUri() {
-    String? uri = _description?.url;
-
-    if (uri == null) return {'protocol': null, 'address': null};
-
-    // Regular expression to match the protocol
-    RegExp regExp = RegExp(r'^(.*?):\/\/');
-
-    String? protocol;
-    String address = uri;
-
-    // Check if the URI has a protocol
-    if (regExp.hasMatch(uri)) {
-      // Extract the protocol
-      protocol = regExp.firstMatch(uri)?.group(1);
-      // Remove the protocol from the address
-      address = uri.replaceFirst(regExp, '');
-    }
-
-    return {'protocol': protocol, 'address': address};
+  // For hosted packages the effective url is the resolved url (if any) or the original url.
+  String? get url => _resolvedUrl ?? description?.url;
+  @override
+  String uri() {
+    return 'SRC_URI:append = " ${url};name=${name};subdir=\${PUB_CACHE_LOCAL}/hosted/${encodedHost}/${name}-${version}"';
   }
 
   @override
-  String toString() {
-    return 'PubEntry{name: $_name, '
-        'description: $_description, version: $_version}';
-  }
-
-  String uri() {
-    String? uri;
-
-    if (hosted) {
-      uri = 'SRC_URI:append = " ${url};name=${_name};'
-          'subdir=\${PUB_CACHE_LOCAL}/hosted/${encodedHost}/${_name}-${_version}"';
-    } else if (git) {
-      String gitProtocol = protocol ?? 'ssh';
-      uri = 'SRC_URI:append = " git://${address};name=${_name};protocol=${gitProtocol};'
-          'destsuffix=\${PUB_CACHE_LOCAL}/git/${_name}-${ref};nobranch=1"';
-    }
-    return uri ?? '';
-  }
-
   String checksum() {
-    String? checksum;
-
-    if (hosted) {
-      checksum = 'SRC_URI[${_name}.sha256sum] = "$sha256"';
-    } else if (git) {
-      checksum = 'SRCREV_${_name} = "$ref"';
-    }
-    return checksum ?? '';
+    return 'SRC_URI[${name}.sha256sum] = "${description?.sha256}"';
   }
 }
 
+/// GitPubEntry is a subtype of PubEntry for git packages.
+/// It returns a SRC_URI and checksum line suitable for git repositories.
+class GitPubEntry extends PubEntry {
+  GitPubEntry({
+    required String name,
+    required String dependency,
+    required PubDesc? description,
+    required String version,
+  }) : super(
+          name: name,
+          dependency: dependency,
+          description: description,
+          source: 'git',
+          version: version,
+        );
+  factory GitPubEntry.fromYamlMap(String name, YamlMap map) {
+    PubDesc? desc;
+    if (map['description'] is YamlMap) {
+      desc = PubDesc.fromYamlMap(map['description'] as YamlMap);
+    }
+    return GitPubEntry(
+      name: name,
+      dependency: map['dependency'] as String,
+      description: desc,
+      version: map['version'] as String,
+    );
+  }
+
+  @override
+  String uri() {
+    // Use splitUri() from the base to extract protocol and address.
+    final split = splitUri();
+    final address = split['address'] ?? '';
+    // Default to ssh if not provided
+    final gitProtocol = split['protocol'] ?? 'ssh';
+
+    return 'SRC_URI:append = " git://${address};name=${name};protocol=${gitProtocol};'
+        'destsuffix=\${PUB_CACHE_LOCAL}/git/${name}-${description?.ref};nobranch=1"';
+  }
+
+  @override
+  String checksum() {
+    return 'SRCREV_${name} = "${description?.ref}"';
+  }
+}
+
+/// A simple description class holding extra package data.
 class PubDesc {
   final String? _name;
   final String? _sha256;
   final String? _resolved_ref;
   final String? _url;
-
+  PubDesc({
+    required String? name,
+    required String? sha256,
+    required String? resolved_ref,
+    String? url,
+  })  : _name = name,
+        _sha256 = sha256,
+        _resolved_ref = resolved_ref,
+        _url = url;
   String? get name => _name;
   String? get url => _url;
   String? get sha256 => _sha256;
   String? get ref => _resolved_ref;
 
-  PubDesc(
-      {required String? name,
-      required String? sha256,
-      required String? resolved_ref,
-      String? url})
-      : _name = name,
-        _sha256 = sha256,
-        _resolved_ref = resolved_ref,
-        _url = url;
-
-  // Factory constructor to create an instance from a YamlMap
+  /// Create a PubDesc from a YamlMap.
   factory PubDesc.fromYamlMap(YamlMap map) {
     return PubDesc(
-      name: map['name'] ?? null as String?,
-      sha256: map['sha256'] ?? null as String?,
-      resolved_ref: map['resolved-ref'] ?? null as String?,
-      url: map['url'] ?? null as String?,
+      name: map['name'] as String?,
+      sha256: map['sha256'] as String?,
+      resolved_ref: map['resolved-ref'] as String?,
+      url: map['url'] as String?,
     );
   }
-
   @override
   String toString() {
     return 'PubDesc{sha256: $sha256, ref: $ref, url: $url}';
