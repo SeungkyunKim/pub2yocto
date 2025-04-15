@@ -32,9 +32,14 @@ class PubEntry {
     return null;
   }
 
-  String? get host {
-    final RegExp regExp = RegExp(r'^https?://');
-    String? hostName = _description?.url?.replaceFirst(regExp, '');
+  String? get address => splitUri()['address'];
+  String? get protocol => splitUri()['protocol'];
+
+  String? get encodedHost {
+    //final RegExp regExp = RegExp(r'^https?://');
+    //String? hostName = _description?.url?.replaceFirst(regExp, '');
+
+    String? hostName = address;
     if (hostName == null) return hostName;
 
     hostName = Uri.encodeComponent(hostName);
@@ -124,6 +129,28 @@ class PubEntry {
     }
   }
 
+  Map<String?, String?> splitUri() {
+    String? uri = _description?.url;
+
+    if (uri == null) return {'protocol': null, 'address': null};
+
+    // Regular expression to match the protocol
+    RegExp regExp = RegExp(r'^(.*?):\/\/');
+
+    String? protocol;
+    String address = uri;
+
+    // Check if the URI has a protocol
+    if (regExp.hasMatch(uri)) {
+      // Extract the protocol
+      protocol = regExp.firstMatch(uri)?.group(1);
+      // Remove the protocol from the address
+      address = uri.replaceFirst(regExp, '');
+    }
+
+    return {'protocol': protocol, 'address': address};
+  }
+
   @override
   String toString() {
     return 'PubEntry{name: $_name, '
@@ -135,9 +162,10 @@ class PubEntry {
 
     if (hosted) {
       uri = 'SRC_URI:append = " ${url};name=${_name};'
-          'subdir=\${PUB_CACHE_LOCAL}/hosted/${host}/${_name}-${_version}"';
+          'subdir=\${PUB_CACHE_LOCAL}/hosted/${encodedHost}/${_name}-${_version}"';
     } else if (git) {
-      uri = 'SRC_URI:append = " git:://${url};name=${_name};protocol=ssh;'
+      String gitProtocol = protocol ?? 'ssh';
+      uri = 'SRC_URI:append = " git://${address};name=${_name};protocol=${gitProtocol};'
           'destsuffix=\${PUB_CACHE_LOCAL}/git/${_name}-${ref};nobranch=1"';
     }
     return uri ?? '';
