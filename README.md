@@ -5,8 +5,8 @@ pub2yocto is a tool that generates a detailed source URL list based on the `pubs
 
 The generated result is for the Yocto build recipe. It should manage dependent packages through the do_fetch and do_unpack stages.
 
-For details on =Dart's `pubspec.yaml` file, follow this link:
-[Dart `pubspec`](hhttps://dart.dev/tools/pub/pubspec)
+For details on Dart's `pubspec.yaml` file, follow this link:
+[Dart `pubspec`](https://dart.dev/tools/pub/pubspec)
 
 To understand how to configure fetching in BitBake for the Yocto Project, you can refer to the following documentation:
 [BitBake User Manual - Fetching](https://docs.yoctoproject.org/bitbake/2.0/bitbake-user-manual/bitbake-user-manual-fetching.html#)
@@ -25,7 +25,7 @@ Or manually add it to your `pubspec.yaml` under `dev_dependencies`:
 
 ```yaml
 dev_dependencies:
-  pub2yocto: ^0.2.0
+  pub2yocto: ^0.3.0
 ```
 
 ## Generate recipe
