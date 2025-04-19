@@ -101,7 +101,7 @@ class PubEntry {
     print(' Skipping non-remote type: $name');
   }
 
-  String uri() {
+  String uri({String? downloadPrefix}) {
     return '';
   }
 
@@ -180,11 +180,39 @@ class HostedPubEntry extends PubEntry {
     }
   }
 
+  /// Resolves and returns the file name from the `_resolvedUrl` if available.
+  ///
+  /// This method parses the `_resolvedUrl` as a URI and extracts the last segment
+  /// of the path as the file name. If the file name starts with `_name`, it appends
+  /// the file name to `_name` with a hyphen (`-`) separator and returns the result.
+  String? resolvedFileName() {
+    if (_resolvedUrl == null) return null;
+
+    final uri = Uri.parse(_resolvedUrl!);
+    final pathSegments = uri.pathSegments;
+
+    if (pathSegments.isEmpty) return null;
+
+    String fileName = pathSegments.last;
+    if (!fileName.startsWith(_name)) {
+      return _name + '-' + fileName;
+    }
+
+    return fileName;
+  }
+
   // For hosted packages the effective url is the resolved url (if any) or the original url.
   String? get url => _resolvedUrl ?? description?.url;
   @override
-  String uri() {
-    return 'SRC_URI:append = " ${url};name=${name};subdir=\${PUB_CACHE_LOCAL}/hosted/${encodedHost}/${name}-${version}"';
+  String uri({String? downloadPrefix}) {
+    final String? fileName = resolvedFileName();
+    String prefix = (downloadPrefix != null && !downloadPrefix.endsWith('/'))
+        ? '$downloadPrefix/'
+        : (downloadPrefix ?? 'pub/');
+    String downloadOpt =
+        (fileName == null) ? '' : ';downloadfilename=${prefix}${fileName}';
+
+    return 'SRC_URI:append = " ${url};name=${name};subdir=\${PUB_CACHE_LOCAL}/hosted/${encodedHost}/${name}-${version}${downloadOpt}"';
   }
 
   @override
@@ -222,7 +250,7 @@ class GitPubEntry extends PubEntry {
   }
 
   @override
-  String uri() {
+  String uri({String? downloadPrefix}) {
     // Use splitUri() from the base to extract protocol and address.
     final split = splitUri();
     final address = split['address'] ?? '';

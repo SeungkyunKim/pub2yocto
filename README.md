@@ -5,6 +5,14 @@ pub2yocto is a tool that generates a detailed source URL list based on the `pubs
 
 The generated result is for the Yocto build recipe. It should manage dependent packages through the do_fetch and do_unpack stages.
 
+For details on Dart's `pubspec.yaml` file, follow this link:
+[Dart `pubspec`](https://dart.dev/tools/pub/pubspec)
+
+To understand how to configure fetching in BitBake for the Yocto Project, you can refer to the following documentation:
+[BitBake User Manual - Fetching](https://docs.yoctoproject.org/bitbake/2.0/bitbake-user-manual/bitbake-user-manual-fetching.html#)
+
+[![pub package](https://img.shields.io/pub/v/pub2yocto.svg)](https://pub.dev/packages/pub2yocto)
+
 ## Installing
 
 Adding the package name to `dev_dependencies`; not to `dependencies` because the package does nothing on runtime.
@@ -17,7 +25,7 @@ Or manually add it to your `pubspec.yaml` under `dev_dependencies`:
 
 ```yaml
 dev_dependencies:
-  pub2yocto: ^0.2.0
+  pub2yocto: ^0.3.0
 ```
 
 ## Generate recipe
@@ -39,6 +47,7 @@ dart run pub2yocto -i path/to/pubspec.lock -o path/to/output.bbappend
 
 - `-i, --input`: Specify the input file. Defaults to `pubspec.lock`.
 - `-o, --output`: Specify the output file name for the generated recipe. If not provided, `pub2yocto` generates a `.bbappend` file named after the project defined in `pubspec.yaml`.
+- `-d, --download-prefix`: Specify the download directory prefix for hosted dependencies. This is useful for customizing the directory structure of downloaded packages.
 
 ## In Your Flutter App Recipe
 
@@ -89,7 +98,7 @@ packages:
 # path used in each individual recipe. The default path is ${WORK_DIR}/pub_cache."
 PUB_CACHE_LOCAL ?= "pub_cache"
 
-SRC_URI:append = " https://pub.dev/api/archives/args-2.7.0.tar.gz;name=args;subdir=${PUB_CACHE_LOCAL}/hosted/pub.dev/args-2.7.0"
+SRC_URI:append = " https://pub.dev/api/archives/args-2.7.0.tar.gz;name=args;subdir=${PUB_CACHE_LOCAL}/hosted/pub.dev/args-2.7.0;downloadfilename=pub-cache/args-2.7.0.tar.gz"
 SRC_URI[args.sha256sum] = "d0481093c50b1da8910eb0bb301626d4d8eb7284aa739614d2b394ee09e3ea04"
 
 SRC_URI:append = " git://github.com/SeungkyunKim/pub2yocto.git;name=pub2yocto;protocol=https;destsuffix=${PUB_CACHE_LOCAL}/git/pub2yocto-6ca590ceeb9977b727a6b014160b33c0df1e9845;nobranch=1" 
