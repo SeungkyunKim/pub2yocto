@@ -13,6 +13,11 @@ void main(List<String> arguments) async {
       defaultsTo: 'pubspec.lock',
     )
     ..addOption('output', abbr: 'o', help: 'Output file name')
+    ..addOption(
+      'download-prefix',
+      abbr: 'd',
+      help: 'Download directory prefix for hosted type',
+    )
     ..addFlag(
       'help',
       abbr: 'h',
@@ -48,6 +53,7 @@ void main(List<String> arguments) async {
   PubspecLockParser lockparser = PubspecLockParser(
     argResults['input'],
     outputFilePath,
+    downloadPrefix: argResults['download-prefix'],
   );
   await lockparser.parse();
 

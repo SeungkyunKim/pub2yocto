@@ -101,7 +101,7 @@ class PubEntry {
     print(' Skipping non-remote type: $name');
   }
 
-  String uri() {
+  String uri({String? downloadPrefix}) {
     return '';
   }
 
@@ -204,11 +204,15 @@ class HostedPubEntry extends PubEntry {
   // For hosted packages the effective url is the resolved url (if any) or the original url.
   String? get url => _resolvedUrl ?? description?.url;
   @override
-  String uri() {
+  String uri({String? downloadPrefix}) {
     final String? fileName = resolvedFileName();
-    String donwloadOpt = (fileName == null) ? '' : ';downloadfilename=pub/${fileName}';
+    String prefix = (downloadPrefix != null && !downloadPrefix.endsWith('/'))
+        ? '$downloadPrefix/'
+        : (downloadPrefix ?? 'pub/');
+    String downloadOpt =
+        (fileName == null) ? '' : ';downloadfilename=${prefix}${fileName}';
 
-    return 'SRC_URI:append = " ${url};name=${name};subdir=\${PUB_CACHE_LOCAL}/hosted/${encodedHost}/${name}-${version}${donwloadOpt}"';
+    return 'SRC_URI:append = " ${url};name=${name};subdir=\${PUB_CACHE_LOCAL}/hosted/${encodedHost}/${name}-${version}${downloadOpt}"';
   }
 
   @override
@@ -246,7 +250,7 @@ class GitPubEntry extends PubEntry {
   }
 
   @override
-  String uri() {
+  String uri({String? downloadPrefix}) {
     // Use splitUri() from the base to extract protocol and address.
     final split = splitUri();
     final address = split['address'] ?? '';
