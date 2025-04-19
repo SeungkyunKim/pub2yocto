@@ -5,6 +5,14 @@ pub2yocto is a tool that generates a detailed source URL list based on the `pubs
 
 The generated result is for the Yocto build recipe. It should manage dependent packages through the do_fetch and do_unpack stages.
 
+For details on =Dart's `pubspec.yaml` file, follow this link:
+[Dart `pubspec`](hhttps://dart.dev/tools/pub/pubspec)
+
+To understand how to configure fetching in BitBake for the Yocto Project, you can refer to the following documentation:
+[BitBake User Manual - Fetching](https://docs.yoctoproject.org/bitbake/2.0/bitbake-user-manual/bitbake-user-manual-fetching.html#)
+
+[![pub package](https://img.shields.io/pub/v/pub2yocto.svg)](https://pub.dev/packages/pub2yocto)
+
 ## Installing
 
 Adding the package name to `dev_dependencies`; not to `dependencies` because the package does nothing on runtime.
