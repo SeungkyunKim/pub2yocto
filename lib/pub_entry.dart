@@ -121,17 +121,11 @@ class PubEntry {
 class HostedPubEntry extends PubEntry {
   String? _resolvedUrl;
   HostedPubEntry({
-    required String name,
-    required String dependency,
-    required PubDesc? description,
-    required String version,
-  }) : super(
-          name: name,
-          dependency: dependency,
-          description: description,
-          source: 'hosted',
-          version: version,
-        );
+    required super.name,
+    required super.dependency,
+    required super.description,
+    required super.version,
+  }) : super(source: 'hosted');
   factory HostedPubEntry.fromYamlMap(String name, YamlMap map) {
     PubDesc? desc;
     if (map['description'] is YamlMap) {
@@ -195,7 +189,7 @@ class HostedPubEntry extends PubEntry {
 
     String fileName = pathSegments.last;
     if (!fileName.startsWith(_name)) {
-      return _name + '-' + fileName;
+      return '$_name-$fileName';
     }
 
     return fileName;
@@ -210,14 +204,14 @@ class HostedPubEntry extends PubEntry {
         ? '$downloadPrefix/'
         : (downloadPrefix ?? 'pub/');
     String downloadOpt =
-        (fileName == null) ? '' : ';downloadfilename=${prefix}${fileName}';
+        (fileName == null) ? '' : ';downloadfilename=$prefix$fileName';
 
-    return 'SRC_URI:append = " ${url};name=${name};subdir=\${PUB_CACHE_LOCAL}/hosted/${encodedHost}/${name}-${version}${downloadOpt}"';
+    return 'SRC_URI:append = " $url;name=$name;subdir=\${PUB_CACHE_LOCAL}/hosted/$encodedHost/$name-$version$downloadOpt"';
   }
 
   @override
   String checksum() {
-    return 'SRC_URI[${name}.sha256sum] = "${description?.sha256}"';
+    return 'SRC_URI[$name.sha256sum] = "${description?.sha256}"';
   }
 }
 
@@ -225,17 +219,11 @@ class HostedPubEntry extends PubEntry {
 /// It returns a SRC_URI and checksum line suitable for git repositories.
 class GitPubEntry extends PubEntry {
   GitPubEntry({
-    required String name,
-    required String dependency,
-    required PubDesc? description,
-    required String version,
-  }) : super(
-          name: name,
-          dependency: dependency,
-          description: description,
-          source: 'git',
-          version: version,
-        );
+    required super.name,
+    required super.dependency,
+    required super.description,
+    required super.version,
+  }) : super(source: 'git');
   factory GitPubEntry.fromYamlMap(String name, YamlMap map) {
     PubDesc? desc;
     if (map['description'] is YamlMap) {
@@ -257,13 +245,13 @@ class GitPubEntry extends PubEntry {
     // Default to ssh if not provided
     final gitProtocol = split['protocol'] ?? 'ssh';
 
-    return 'SRC_URI:append = " git://${address};name=${name};protocol=${gitProtocol};'
-        'destsuffix=\${PUB_CACHE_LOCAL}/git/${name}-${description?.ref};nobranch=1"';
+    return 'SRC_URI:append = " git://$address;name=$name;protocol=$gitProtocol;'
+        'destsuffix=\${PUB_CACHE_LOCAL}/git/$name-${description?.ref};nobranch=1"';
   }
 
   @override
   String checksum() {
-    return 'SRCREV_${name} = "${description?.ref}"';
+    return 'SRCREV_$name = "${description?.ref}"';
   }
 }
 
@@ -271,28 +259,28 @@ class GitPubEntry extends PubEntry {
 class PubDesc {
   final String? _name;
   final String? _sha256;
-  final String? _resolved_ref;
+  final String? _resolvedRef;
   final String? _url;
   PubDesc({
     required String? name,
     required String? sha256,
-    required String? resolved_ref,
+    required String? resolvedRef,
     String? url,
   })  : _name = name,
         _sha256 = sha256,
-        _resolved_ref = resolved_ref,
+        _resolvedRef = resolvedRef,
         _url = url;
   String? get name => _name;
   String? get url => _url;
   String? get sha256 => _sha256;
-  String? get ref => _resolved_ref;
+  String? get ref => _resolvedRef;
 
   /// Create a PubDesc from a YamlMap.
   factory PubDesc.fromYamlMap(YamlMap map) {
     return PubDesc(
       name: map['name'] as String?,
       sha256: map['sha256'] as String?,
-      resolved_ref: map['resolved-ref'] as String?,
+      resolvedRef: map['resolved-ref'] as String?,
       url: map['url'] as String?,
     );
   }
