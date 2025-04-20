@@ -1,24 +1,25 @@
 import 'dart:io';
+import 'package:crypto/crypto.dart';
 import 'package:yaml/yaml.dart';
 import 'package:pub2yocto/pub_entry.dart';
 
 class PubspecLockParser {
-  final String filePath;
+  final File inputFile;
   final File outputFile;
   final String? downloadPrefix;
   final List<PubEntry> pubEntries = [];
 
-  PubspecLockParser(this.filePath, String outputFilePath, {this.downloadPrefix})
-      : outputFile = File(outputFilePath);
+  PubspecLockParser(inputFilePath, String outputFilePath, {this.downloadPrefix})
+      : inputFile = File(inputFilePath),
+        outputFile = File(outputFilePath);
 
   Future<void> parse() async {
-    final file = File(filePath);
-    if (!file.existsSync()) {
-      print('File not found: $filePath');
+    if (!inputFile.existsSync()) {
+      print('File not found: ${inputFile.path}');
       return;
     }
 
-    final content = file.readAsStringSync();
+    final content = inputFile.readAsStringSync();
     final yamlMap = loadYaml(content);
 
     for (var pkg in yamlMap['packages'].entries) {
@@ -41,7 +42,11 @@ class PubspecLockParser {
       await outputFile.writeAsString(
         '# "PUB_CACHE_LOCAL is a relative path starting from \${WORK_DIR} that specifies the pub_cache \n'
         '# path used in each individual recipe. The default path is \${WORK_DIR}/pub_cache."\n'
-        'PUB_CACHE_LOCAL ?= "pub_cache"\n\n',
+        'PUB_CACHE_LOCAL ?= "pub_cache"\n',
+        mode: FileMode.append,
+      );
+      await outputFile.writeAsString(
+        'PUBSPEC_LOCK_SHA256 = "${await getLockSHA256()}"\n\n',
         mode: FileMode.append,
       );
     } catch (e) {
@@ -65,6 +70,21 @@ class PubspecLockParser {
           print('An error occurred while writing to the file: $e');
         }
       }
+    }
+  }
+
+  Future<String> getLockSHA256() async {
+    try {
+      if (!inputFile.existsSync()) {
+        throw Exception('File not found: ${inputFile.path}');
+      }
+
+      final bytes = await inputFile.readAsBytes();
+      final checksum = sha256.convert(bytes).toString();
+      return checksum;
+    } catch (e) {
+      print('An error occurred while calculating the checksum: $e');
+      rethrow;
     }
   }
 }

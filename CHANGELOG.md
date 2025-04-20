@@ -1,3 +1,7 @@
+## 0.3.1
+- Added support for SHA256 checksum calculation of the `pubspec.lock` file. This ensures the integrity with current pubspec lock.
+- Fixed static analysis issues.
+
 ## 0.3.0
 
 ### Added
