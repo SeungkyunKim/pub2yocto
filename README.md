@@ -6,7 +6,7 @@ pub2yocto is a tool that generates a detailed source URL list based on the `pubs
 The generated result is for the Yocto build recipe. It should manage dependent packages through the do_fetch and do_unpack stages.
 
 For details on Dart's `pubspec.yaml` file, follow this link:
-[Dart `pubspec`](https://dart.dev/tools/pub/pubspec)
+[Dart - pubspec](https://dart.dev/tools/pub/pubspec)
 
 To understand how to configure fetching in BitBake for the Yocto Project, you can refer to the following documentation:
 [BitBake User Manual - Fetching](https://docs.yoctoproject.org/bitbake/2.0/bitbake-user-manual/bitbake-user-manual-fetching.html#)
@@ -52,8 +52,14 @@ dart run pub2yocto -i path/to/pubspec.lock -o path/to/output.bbappend
 ## In Your Flutter App Recipe
 
 `pub2yocto` generates Yocto recipes that assume a `PUB_CACHE_LOCAL` environment variable. This variable is a relative path from `${WORK_DIR}` that specifies the `pub_cache` path used by individual recipes. If not set, it defaults to `${WORK_DIR}/pub_cache`.
-
 Ensure this setup aligns with your Yocto project's configuration for smooth integration.
+
+### For integraty with your pubspec.lock file
+This is optional environment variable `PUBSPEC_LOCK_SHA256` that his generated to output file.
+```bash
+PUBSPEC_LOCK_SHA256 = "<pubspec-lock-sha256sum>"
+```
+To ensure that the generated SRU_URIs match exactly, compare the actual SHA-256 checksum of your pubspec.lock file at build time.
 
 ### Translation Example: From `pubspec.yaml` to `.bbappend`
 #### pubspec.yaml
