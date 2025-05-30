@@ -12,9 +12,7 @@ dependencies:
 
 dev_dependencies:
   pub2yocto:
-    git:
-      url: https://github.com/SeungkyunKim/pub2yocto.git
-      ref: main
+    path: ..
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
