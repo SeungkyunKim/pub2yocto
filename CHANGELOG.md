@@ -1,3 +1,6 @@
+## 0.3.2
+- Change output file suffix to '.inc'
+
 ## 0.3.1
 - Added support for SHA256 checksum calculation of the `pubspec.lock` file. This ensures the integrity with current pubspec lock.
 - Fixed static analysis issues.
