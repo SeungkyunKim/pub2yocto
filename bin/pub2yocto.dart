@@ -46,7 +46,7 @@ void main(List<String> arguments) async {
   String? outputFilePath = argResults['output'];
   if (outputFilePath == null) {
     String? name = getPubspecName();
-    outputFilePath = name != null ? '$name.bbappend' : 'pubspec.bbappend';
+    outputFilePath = name != null ? '$name.inc' : 'pubspec.inc';
     print('Output file name not provided. Using default: $outputFilePath');
   }
 
