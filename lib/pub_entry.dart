@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
 import 'package:yaml/yaml.dart';
 
@@ -96,10 +97,12 @@ class PubEntry {
   }
 
   /// By default, a generic PubEntry does not fetch a resolved URL.
-  Future resolveUrl() async {
+  Future resolveRemote() async {
     // Do nothing for non-remote types (or types that do not override this)
     print(' Skipping non-remote type: $name');
   }
+
+  String? get url => null;
 
   String uri({String? downloadPrefix}) {
     return '';
@@ -116,7 +119,7 @@ class PubEntry {
 }
 
 /// HostedPubEntry is a subtype of PubEntry for hosted packages.
-/// It overrides resolveUrl to perform an HTTP call and produces
+/// It overrides resolveRemote to perform an HTTP call and produces
 /// a SRC_URI and checksum line for hosted packages.
 class HostedPubEntry extends PubEntry {
   String? _resolvedUrl;
@@ -139,7 +142,7 @@ class HostedPubEntry extends PubEntry {
     );
   }
   @override
-  Future resolveUrl() async {
+  Future resolveRemote() async {
     String? hostedUrl = description?.url;
     final String pkgName = name;
 
@@ -196,7 +199,9 @@ class HostedPubEntry extends PubEntry {
   }
 
   // For hosted packages the effective url is the resolved url (if any) or the original url.
+  @override
   String? get url => _resolvedUrl ?? description?.url;
+
   @override
   String uri({String? downloadPrefix}) {
     final String? fileName = resolvedFileName();
@@ -218,6 +223,22 @@ class HostedPubEntry extends PubEntry {
 /// GitPubEntry is a subtype of PubEntry for git packages.
 /// It returns a SRC_URI and checksum line suitable for git repositories.
 class GitPubEntry extends PubEntry {
+  String? _gitRevision;
+
+  @override
+  String? get url => description?.url;
+
+  /// Returns the SHA1 hash of the URL, or null if URL is not available.
+  String? get urlSha1 {
+    final u = description?.url;
+    if (u == null) return null;
+
+    // Use Dart's crypto package for SHA1
+    final bytes = utf8.encode(u);
+    final digest = sha1.convert(bytes);
+    return digest.toString();
+  }
+
   GitPubEntry({
     required super.name,
     required super.dependency,
@@ -237,6 +258,22 @@ class GitPubEntry extends PubEntry {
     );
   }
 
+  String packageName() {
+    // Remove trailing slash if present
+    String? address = _description?.url;
+
+    if (address == null) {
+      return name; // Fallback to the package name if URL is not available
+    }
+
+    // Remove trailing slash if present
+    if (address.endsWith('/')) {
+        address = address.substring(0, address.length - 1);
+      }
+    // Split by slash and return the last segment
+    return address.split('/').last;
+  }
+
   @override
   String uri({String? downloadPrefix}) {
     // Use splitUri() from the base to extract protocol and address.
@@ -244,14 +281,49 @@ class GitPubEntry extends PubEntry {
     final address = split['address'] ?? '';
     // Default to ssh if not provided
     final gitProtocol = split['protocol'] ?? 'ssh';
+    final String pkgName = packageName();
 
-    return 'SRC_URI:append = " git://$address;name=$name;protocol=$gitProtocol;'
-        'destsuffix=\${PUB_CACHE_LOCAL}/git/$name-${description?.ref};nobranch=1"';
+    return 'SRC_URI:append = " git://$address;name=$pkgName;protocol=$gitProtocol;'
+        'destsuffix=\${PUB_CACHE_LOCAL}/git/cache/$pkgName-${urlSha1 ?? checksum()};'
+        'nobranch=1;bareclone=1"';
   }
 
   @override
   String checksum() {
-    return 'SRCREV_$name = "${description?.ref}"';
+    return 'SRCREV_${packageName()} = "${_gitRevision ?? description?.ref}"';
+  }
+
+  // Fetches the commit hash of the remote HEAD for the Git repository.
+  @override
+  Future resolveRemote() async {
+    final repoUrl = description?.url;
+    if (repoUrl == null) {
+      print('Error: Git repository URL is not available for package $name.');
+      return;
+    }
+
+    try {
+      // Execute 'git ls-remote <repository_url> HEAD'
+      final result = await Process.run('git', ['ls-remote', repoUrl, 'HEAD']);
+
+      if (result.exitCode == 0) {
+        final output = result.stdout.toString().trim();
+        // Expected output format: <commit_hash>\tHEAD
+        if (output.isNotEmpty && output.contains('\t')) {
+          _gitRevision = output.split('\t').first;
+          return;
+        } else {
+          print('Error: Could not parse HEAD revision for $repoUrl: "$output"');
+        }
+      } else {
+        print('Error running git ls-remote for :');
+        print('$repoUrl (exit code ${result.exitCode}): ${result.stderr}');
+      }
+    } catch (e) {
+      print(
+          'Exception while trying to get remote HEAD revision for $repoUrl: $e');
+      return;
+    }
   }
 }
 
