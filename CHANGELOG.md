@@ -1,3 +1,6 @@
+## 0.4.0
+- Fixed the entries for the git type in the generated recipe files.
+
 ## 0.3.2
 - Change output file suffix to '.inc'
 

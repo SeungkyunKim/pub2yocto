@@ -27,11 +27,36 @@ class PubspecLockParser {
       PubEntry entry = PubEntry.fromYamlMap(pkg.key, pkg.value as YamlMap);
 
       try {
-        await entry.resolveUrl();
+        // For GitPubEntry, only add if urlSha1 is unique
+        if (entry.git) {
+          bool exists = pubEntries.any((e) => e.git && e.url == entry.url);
+          if (exists) {
+            print('Skipping duplicate git entry: ${entry.name}');
+            continue;
+          }
+        }
+
+        await entry.resolveRemote();
         pubEntries.add(entry);
       } catch (e) {
         print('Error resolving URL: $e');
       }
+    }
+  }
+  Future<void> writeEntry(PubEntry entry, bool git) async {
+    try {
+      await outputFile.writeAsString(
+          '${entry.uri(downloadPrefix: downloadPrefix)}\n',
+          mode: FileMode.append);
+      await outputFile.writeAsString('${entry.checksum()}\n',
+          mode: FileMode.append);
+      if (git) {
+        await outputFile.writeAsString(
+            'SRCREV_FORMAT:append = " ${entry.name}"\n',
+            mode: FileMode.append);
+      }
+    } catch (e) {
+      print('An error occurred while writing to the file: $e');
     }
   }
 
@@ -45,29 +70,31 @@ class PubspecLockParser {
 
       await outputFile.writeAsString(
         'PUB_CACHE_LOCAL ?= "pub_cache"\n'
-        'PUBSPEC_LOCK_SHA256 = "${await getLockSHA256()}"\n\n',
+        'PUBSPEC_LOCK_SHA256 = "${await getLockSHA256()}"\n',
         mode: FileMode.append,
       );
     } catch (e) {
       print('An error occurred while resetting the file: $e');
     }
 
+    await outputFile.writeAsString(
+      '\n############################################################\n'
+      '# Hosted packages\n'
+      '############################################################\n',
+      mode: FileMode.append);
     for (var entry in pubEntries) {
-      if (entry.remote) {
-        try {
-          await outputFile.writeAsString(
-              '${entry.uri(downloadPrefix: downloadPrefix)}\n',
-              mode: FileMode.append);
-          await outputFile.writeAsString('${entry.checksum()}\n',
-              mode: FileMode.append);
-          if (entry.git) {
-            await outputFile.writeAsString(
-                'SRCREV_FORMAT:append = " ${entry.name}"\n',
-                mode: FileMode.append);
-          }
-        } catch (e) {
-          print('An error occurred while writing to the file: $e');
-        }
+      if (entry.remote && !entry.git) {
+        await writeEntry(entry, false);
+      }
+    }
+    await outputFile.writeAsString(
+      '\n############################################################\n'
+      '# Git packages\n'
+      '############################################################\n',
+      mode: FileMode.append);
+    for (var entry in pubEntries) {
+      if (entry.remote && entry.git) {
+        await writeEntry(entry, true);
       }
     }
   }
