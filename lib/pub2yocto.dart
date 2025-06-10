@@ -43,18 +43,13 @@ class PubspecLockParser {
       }
     }
   }
-  Future<void> writeEntry(PubEntry entry, bool git) async {
+
+  Future writeEntry(PubEntry entry) async {
     try {
       await outputFile.writeAsString(
-          '${entry.uri(downloadPrefix: downloadPrefix)}\n',
+          '${entry.uri(downloadPrefix: downloadPrefix)}\n'
+          '${entry.checksum()}\n',
           mode: FileMode.append);
-      await outputFile.writeAsString('${entry.checksum()}\n',
-          mode: FileMode.append);
-      if (entry is GitPubEntry) {
-        await outputFile.writeAsString(
-            'SRCREV_FORMAT:append = " ${entry.packageName()}"\n',
-            mode: FileMode.append);
-      }
     } catch (e) {
       print('An error occurred while writing to the file: $e');
     }
@@ -73,29 +68,51 @@ class PubspecLockParser {
         'PUBSPEC_LOCK_SHA256 = "${await getLockSHA256()}"\n',
         mode: FileMode.append,
       );
+
+      await outputFile.writeAsString(
+        '\n############################################################\n'
+        '# Hosted packages\n'
+        '############################################################\n',
+        mode: FileMode.append);
+      for (var entry in pubEntries) {
+        if (entry.remote && !entry.git) {
+          await writeEntry(entry);
+        }
+      }
+
+      await outputFile.writeAsString(
+        '\n############################################################\n'
+        '# Git packages\n'
+        '############################################################\n',
+        mode: FileMode.append);
+      List<String> gitSrcRevFormat = [];
+      for (var entry in pubEntries) {
+        if (entry.remote && entry.git) {
+          await writeEntry(entry);
+
+          if (entry is GitPubEntry) {
+            String? pkgName = entry.packageName();
+            gitSrcRevFormat.add(pkgName);
+          }
+        }
+      }
+
+      if (gitSrcRevFormat.isNotEmpty) {
+        await outputFile.writeAsString(
+          '\nSRCREV_FORMAT:append = "\\\n',
+          mode: FileMode.append);
+
+        for (String entry in gitSrcRevFormat) {
+          await outputFile.writeAsString(
+            '      $entry \\\n',
+            mode: FileMode.append);
+        }
+
+        await outputFile.writeAsString(
+          '"', mode: FileMode.append);
+      }
     } catch (e) {
       print('An error occurred while resetting the file: $e');
-    }
-
-    await outputFile.writeAsString(
-      '\n############################################################\n'
-      '# Hosted packages\n'
-      '############################################################\n',
-      mode: FileMode.append);
-    for (var entry in pubEntries) {
-      if (entry.remote && !entry.git) {
-        await writeEntry(entry, false);
-      }
-    }
-    await outputFile.writeAsString(
-      '\n############################################################\n'
-      '# Git packages\n'
-      '############################################################\n',
-      mode: FileMode.append);
-    for (var entry in pubEntries) {
-      if (entry.remote && entry.git) {
-        await writeEntry(entry, true);
-      }
     }
   }
 
