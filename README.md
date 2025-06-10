@@ -111,11 +111,15 @@ PUBSPEC_LOCK_SHA256 = "94efc5507f118c0f473101890dfcfd3d02c93be044b1751ea3f694f96
 ############################################################
 SRC_URI:append = " https://pub.dev/api/archives/args-2.7.0.tar.gz;name=args;subdir=${PUB_CACHE_LOCAL}/hosted/pub.dev/args-2.7.0;downloadfilename=pub-cache/args-2.7.0.tar.gz"
 SRC_URI[args.sha256sum] = "d0481093c50b1da8910eb0bb301626d4d8eb7284aa739614d2b394ee09e3ea04"
+
 ############################################################
 # Git packages
 ############################################################
-SRC_URI:append = " git://github.com/SeungkyunKim/pub2yocto.git;name=pub2yocto.git;protocol=https;destsuffix=${PUB_CACHE_LOCAL}/git/cache/pub2yocto.git-e1c8c09065201ef857585bef1766bd2d3d044fa0;nobranch=1;bareclone=1"
-SRCREV_pub2yocto.git = "ed7b8c52aeb848ce5c0f7f53b58009b7d9855ba6"
-SRCREV_FORMAT:append = " pub2yocto"
+SRC_URI:append = " git://github.com/SeungkyunKim/pub2yocto.git;name=pub2yocto;protocol=https;destsuffix=${PUB_CACHE_LOCAL}/git/cache/pub2yocto-e1c8c09065201ef857585bef1766bd2d3d044fa0;nobranch=1;bareclone=1"
+SRCREV_pub2yocto = "e7fbe6e756923249ee529e799918e69e68cec547"
+
+SRCREV_FORMAT:append = " \
+      pub2yocto \
+"
 ```
 

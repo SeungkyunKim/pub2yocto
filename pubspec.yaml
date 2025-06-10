@@ -1,6 +1,6 @@
 name: pub2yocto
 description: A Dart package to convert pubspec.lock file to Yocto recipes.
-version: 0.4.1
+version: 0.4.2
 repository: https://github.com/SeungkyunKim/pub2yocto
 
 environment:
