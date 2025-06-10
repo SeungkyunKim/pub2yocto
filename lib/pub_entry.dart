@@ -272,7 +272,11 @@ class GitPubEntry extends PubEntry {
     // Remove trailing slash if present
     if (address.endsWith('/')) {
         address = address.substring(0, address.length - 1);
-      }
+    }
+    if (address.endsWith('.git')) {
+        address = address.substring(0, address.length - 4);
+    }
+
     // Split by slash and return the last segment
     return address.split('/').last;
   }
