@@ -123,6 +123,7 @@ class PubEntry {
 /// a SRC_URI and checksum line for hosted packages.
 class HostedPubEntry extends PubEntry {
   String? _resolvedUrl;
+  String? _resolvedSha256;
   HostedPubEntry({
     required super.name,
     required super.dependency,
@@ -148,6 +149,7 @@ class HostedPubEntry extends PubEntry {
 
     if (hostedUrl == null) {
       _resolvedUrl = null;
+      _resolvedSha256 = null;
       return;
     }
 
@@ -169,6 +171,7 @@ class HostedPubEntry extends PubEntry {
         final versionData = verPkg as Map<String, dynamic>;
         if (versionData['version'] == version) {
           _resolvedUrl = versionData['archive_url'] as String;
+          _resolvedSha256 = versionData['archive_sha256'] as String;
           break;
         }
       }
@@ -216,7 +219,7 @@ class HostedPubEntry extends PubEntry {
 
   @override
   String checksum() {
-    return 'SRC_URI[$name.sha256sum] = "${description?.sha256}"';
+    return 'SRC_URI[$name.sha256sum] = "${_resolvedSha256 ?? description?.sha256}"';
   }
 }
 
