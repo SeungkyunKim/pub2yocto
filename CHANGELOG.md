@@ -1,3 +1,6 @@
+## 0.4.1
+- Fixed bug on git src name of SRC_URI
+
 ## 0.4.0
 - Fixed the entries for the git type in the generated recipe files.
 

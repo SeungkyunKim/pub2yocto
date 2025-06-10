@@ -50,9 +50,9 @@ class PubspecLockParser {
           mode: FileMode.append);
       await outputFile.writeAsString('${entry.checksum()}\n',
           mode: FileMode.append);
-      if (git) {
+      if (entry is GitPubEntry) {
         await outputFile.writeAsString(
-            'SRCREV_FORMAT:append = " ${entry.name}"\n',
+            'SRCREV_FORMAT:append = " ${entry.packageName()}"\n',
             mode: FileMode.append);
       }
     } catch (e) {
