@@ -1,3 +1,8 @@
+## 0.4.2
+- Use achieved sha256 value from hosted
+- Ignore '.git' suffix on git repository address
+- Refactor writeAsRecipe to more readibility
+
 ## 0.4.1
 - Fixed bug on git src name of SRC_URI
 
