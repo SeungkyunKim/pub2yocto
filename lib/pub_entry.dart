@@ -148,8 +148,6 @@ class HostedPubEntry extends PubEntry {
     final String pkgName = name;
 
     if (hostedUrl == null) {
-      _resolvedUrl = null;
-      _resolvedSha256 = null;
       return;
     }
 
@@ -171,7 +169,7 @@ class HostedPubEntry extends PubEntry {
         final versionData = verPkg as Map<String, dynamic>;
         if (versionData['version'] == version) {
           _resolvedUrl = versionData['archive_url'] as String;
-          _resolvedSha256 = versionData['archive_sha256'] as String;
+          _resolvedSha256 = versionData['archive_sha256'] as String?;
           break;
         }
       }
