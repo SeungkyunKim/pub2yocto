@@ -1,3 +1,6 @@
+## 0.4.3
+- Improve null handling in HostedPubEntry class
+
 ## 0.4.2
 - Use achieved sha256 value from hosted
 - Ignore '.git' suffix on git repository address

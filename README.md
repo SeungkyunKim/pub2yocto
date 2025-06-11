@@ -25,7 +25,7 @@ Or manually add it to your `pubspec.yaml` under `dev_dependencies`:
 
 ```yaml
 dev_dependencies:
-  pub2yocto: ^0.3.0
+  pub2yocto: ^0.4.0
 ```
 
 ## Generate recipe
