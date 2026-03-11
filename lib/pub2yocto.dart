@@ -9,7 +9,7 @@ class PubspecLockParser {
   final String? downloadPrefix;
   final List<PubEntry> pubEntries = [];
 
-  PubspecLockParser(inputFilePath, String outputFilePath, {this.downloadPrefix})
+  PubspecLockParser(String inputFilePath, String outputFilePath, {this.downloadPrefix})
       : inputFile = File(inputFilePath),
         outputFile = File(outputFilePath);
 

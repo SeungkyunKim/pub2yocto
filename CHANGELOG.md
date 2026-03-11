@@ -1,3 +1,7 @@
+## 0.4.4
+- Fix static analysis
+- Add explanation comment for git reference handling
+
 ## 0.4.3
 - Improve null handling in HostedPubEntry class
 

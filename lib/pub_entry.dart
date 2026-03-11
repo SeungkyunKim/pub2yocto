@@ -299,6 +299,10 @@ class GitPubEntry extends PubEntry {
   }
 
   // Fetches the commit hash of the remote HEAD for the Git repository.
+  // Fetch the latest mirror instance to pub cache through the git HEAD reference,
+  // then create each reference instance during the pub get phase.
+  // This is because a single repository can contain multiple packages,
+  // so we cannot specify one particular reference.
   @override
   Future resolveRemote() async {
     final repoUrl = description?.url;
