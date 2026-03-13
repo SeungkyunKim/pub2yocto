@@ -1,3 +1,8 @@
+## 0.5.0
+- Replace `git ls-remote HEAD` with `git for-each-ref` on local git cache.  Resolve the
+latest commit by examining branch heads in the locally cached bare repository
+- Fix indents and white space trail
+
 ## 0.4.4
 - Fix static analysis
 - Add explanation comment for git reference handling

@@ -269,10 +269,10 @@ class GitPubEntry extends PubEntry {
 
     // Remove trailing slash if present
     if (address.endsWith('/')) {
-        address = address.substring(0, address.length - 1);
+      address = address.substring(0, address.length - 1);
     }
     if (address.endsWith('.git')) {
-        address = address.substring(0, address.length - 4);
+      address = address.substring(0, address.length - 4);
     }
 
     // Split by slash and return the last segment
@@ -298,9 +298,9 @@ class GitPubEntry extends PubEntry {
     return 'SRCREV_${packageName()} = "${_gitRevision ?? description?.ref}"';
   }
 
-  // Fetches the commit hash of the remote HEAD for the Git repository.
-  // Fetch the latest mirror instance to pub cache through the git HEAD reference,
-  // then create each reference instance during the pub get phase.
+  // Fetches the commit hash of the remote latest revision for the Git repository.
+  // Fetch the latest mirror instance to pub cache, then retrieves the most recent
+  // commit from branch heads during the pub get phase.
   // This is because a single repository can contain multiple packages,
   // so we cannot specify one particular reference.
   @override
@@ -312,25 +312,47 @@ class GitPubEntry extends PubEntry {
     }
 
     try {
-      // Execute 'git ls-remote <repository_url> HEAD'
-      final result = await Process.run('git', ['ls-remote', repoUrl, 'HEAD']);
+      // Note: Examine in local git cache because ls-remote cannot
+      // reliably determine the latest revision for repositories 
+      final home = Platform.environment['HOME'] ?? '';
+      final pubCache = Platform.environment['PUB_CACHE'] ?? '$home/.pub-cache';
+
+      final pkgName = packageName();
+      final targetPath =
+          '$pubCache/git/cache/$pkgName-${urlSha1 ?? checksum()}';
+
+      if (!await Directory(targetPath).exists()) {
+        print('Error: Git cache path does not exist: $targetPath');
+        return;
+      }
+
+      final result = await Process.run('git', [
+        '-C',
+        targetPath,
+        'for-each-ref',
+        '--sort=-committerdate',
+        '--format=%(objectname)',
+        '--count=1',
+        'refs/heads/',
+      ]);
 
       if (result.exitCode == 0) {
         final output = result.stdout.toString().trim();
-        // Expected output format: <commit_hash>\tHEAD
-        if (output.isNotEmpty && output.contains('\t')) {
-          _gitRevision = output.split('\t').first;
+        if (output.isNotEmpty) {
+          _gitRevision = output;
           return;
         } else {
-          print('Error: Could not parse HEAD revision for $repoUrl: "$output"');
+          print('Error: No ref found in $targetPath');
+          print('  Make sure to run \'pub get\' before running this');
         }
       } else {
-        print('Error running git ls-remote for :');
-        print('$repoUrl (exit code ${result.exitCode}): ${result.stderr}');
+        print('Error running git for-each-ref in $targetPath:');
+        print('(exit code ${result.exitCode}): ${result.stderr}');
       }
     } catch (e) {
       print(
-          'Exception while trying to get remote HEAD revision for $repoUrl: $e');
+        'Exception while trying to get remote latest revision for $repoUrl: $e',
+      );
       return;
     }
   }
