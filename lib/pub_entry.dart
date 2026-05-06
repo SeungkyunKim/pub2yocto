@@ -295,7 +295,13 @@ class GitPubEntry extends PubEntry {
 
   @override
   String checksum() {
-    return 'SRCREV_${packageName()} = "${_gitRevision ?? description?.ref}"';
+    // Prefer pubspec.lock's resolved-ref (description.ref) over the
+    // for-each-ref result on the local bare clone. Without this, when
+    // upstream pushes new commits between `pub get` runs, the bare
+    // clone's branch tip moves past the locked SHA and SRCREV diverges
+    // from the lock — breaking lock-file semantics. Fall back to
+    // _gitRevision only when the lock has no resolved-ref.
+    return 'SRCREV_${packageName()} = "${description?.ref ?? _gitRevision}"';
   }
 
   // Fetches the commit hash of the remote latest revision for the Git repository.
