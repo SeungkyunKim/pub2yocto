@@ -1,3 +1,10 @@
+## Unreleased
+- Prefer `pubspec.lock`'s `resolved-ref` over the local bare clone's branch tip
+when emitting `SRCREV_<pkg>`. Restores lock-file semantics: regenerated `.inc`
+now matches whatever `pub get` resolved, even if upstream branches have moved
+since the lock was written. The for-each-ref result is preserved as a fallback
+for entries without a `resolved-ref` (rare; the multi-package monorepo case).
+
 ## 0.5.0
 - Replace `git ls-remote HEAD` with `git for-each-ref` on local git cache.  Resolve the
 latest commit by examining branch heads in the locally cached bare repository
